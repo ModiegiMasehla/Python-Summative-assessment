@@ -1,0 +1,80 @@
+=== Question 1 ===
+#Answer below
+
+1. pwd shows the full path of the folder I am currently in (print working directory). ls then lists the files and folders inside it. I would use ls -la to also see hidden files and details such as permissions, owner and size. I use these first so I know where I am before changing anything.
+
+2. cd reports - cd (change directory) moves me into the reports folder. If the folder does not exist, or I am in the wrong place, I get an error and nothing is changed. I can check with pwd afterwards.
+
+3. tail -n 20 sales.log - tail prints the end of a file, and -n 20 limits it to the last 20 lines. I chose tail instead of cat because cat would print the whole file, which for a very large log would flood the screen and could be slow. less sales.log is another safe option because it shows one page at a time and I can scroll and quit with q.
+
+4. mkdir archive - mkdir (make directory) creates a new empty folder called archive in the current directory. If a folder with that name already exists, I get an error instead of it being overwritten.
+
+5. mv old_sales.csv archive/ - mv moves the file into the archive folder. It removes the file from its old place, so it is a move and not a copy. The risk is that if a file with the same name is already in archive, it is silently replaced. I can use mv -i to be asked before anything is overwritten, and then use ls archive to confirm the file arrived. If I want to keep the original in place I would use cp instead.
+
+6. rm -r temp_files - rm removes files and the -r (recursive) option makes it remove a folder and everything inside it. This is the most dangerous task, because Linux has no recycle bin and deleted files cannot be recovered. To be careful I would first run pwd and ls temp_files to confirm I am deleting the right folder and see what is in it, double check the spelling, never use a wildcard like * or run it as root unless I must, and use rm -ri to be asked to confirm each item. I would also make sure there is a backup of anything important.
+
+=== Question 2 ===
+#Answer below
+
+Loops repeat a block of code. A for loop goes through every item of a collection (a list, string, dictionary, range). A while loop repeats for as long as a condition stays true. Both can be controlled from the inside.
+
+break stops the loop immediately and carries on with the code after the loop. It is what the junior developer is missing in the customer search. When the customer is found there is no reason to check the remaining records, so the loop should break as soon as there is a match. With 50 000 records this saves a lot of wasted work.
+
+continue skips the rest of the current iteration and goes straight to the next one. It is useful when some items should be ignored, for example skipping blank lines or cancelled orders while processing a file, so that the main logic does not need to be nested inside an extra if.
+
+An infinite loop happens when the condition of a while loop never becomes false, usually because the variable in the condition is never updated, is updated in the wrong direction, or the program waits for something that never happens. For example, while count < 10: with no count += 1 inside will run forever and can freeze a server. To prevent it: make sure something inside the loop changes the condition, test with small inputs first, add a maximum number of attempts (for example when retrying a failed network request), and use break when a goal is reached. If I already know how many times or over what collection I need to loop, a for loop is safer because it ends by itself.
+
+How to choose: use for when I have a collection or a known number of repeats (go through every transaction, process 100 rows). Use while when I do not know in advance how many repeats I need and it depends on a condition (keep asking the user until they enter valid input, keep retrying until the connection works, or until a maximum number of tries is reached).
+
+A nested loop is a loop inside another loop. For every iteration of the outer loop, the inner loop runs completely. This is good for naturally two-dimensional data, such as rows and columns of a table, a grid or a timetable. It becomes a problem with big data: looping over 10 000 items inside a loop over 10 000 items means 100 million steps. In such cases it is better to use a dictionary or a set for lookups instead of a second loop, and to break out as soon as the answer is found. A break in a nested loop only exits the inner loop, so I would use a function with return, or a flag, if I need to leave both.
+
+Useful built-in helpers: enumerate() gives the index and the value together instead of range(len(items)), and zip() loops over two lists at the same time.
+
+=== Question 3 ===
+#Answer below
+
+In Python, a variable does not hold the object itself, it is a name that points to an object. When a list is passed into a function, the function receives a reference to the same list in memory, not a copy. So if the function changes the list in place using methods like remove(), append() or pop(), or by assigning to an index, the caller's list changes as well. This is called a side effect and it is exactly what happened to the colleague.
+
+Mutable types (lists, dictionaries, sets) can be changed in place, so changes made inside a function are visible outside it. Immutable types (strings, integers, floats, tuples) cannot be changed in place. When code such as text = text.upper() or total += 1 appears inside a function, Python creates a new object and the local name points to it, so the caller's original is untouched. That is why the string version never affected the original.
+
+Assigning does not copy. new_list = old_list makes two names for the same list, so changing one changes the other (I can check this with the is operator, which returns True when two names point to the same object, while == only checks whether the values are equal).
+To really copy a list I can use old_list.copy(), list(old_list) or old_list[:]. These make a shallow copy: a new outer list, but the items inside are the same objects. This is fine for a list of numbers or strings, but if the list contains other lists or dictionaries (such as transactions stored as dictionaries) then changing one of those inner items changes it in both copies. For a fully independent copy I use copy.deepcopy(), which copies the inner objects as well.
+
+To write functions that avoid the surprise: build and return a new list instead of changing the one that was passed in, for example cleaned = [t for t in transactions if not t["cancelled"]] and return cleaned. If I must work on the data and keep the original, I make a copy at the start of the function. I should also never use a mutable object as a default argument value (def f(items=[])) because that single list is shared between all calls, and use None instead and create the list inside the function. Finally, document it clearly when a function does change its input on purpose.
+
+=== Question 4 ===
+#Answer below
+
+An API (Application Programming Interface) lets one program talk to another. A weather service exposes endpoints (URLs such as https://api.example.com/v1/weather) and our app sends HTTP requests to them and receives responses with the data.
+
+JSON (JavaScript Object Notation) is a lightweight text format for data, made of key:value pairs (objects) and lists, for example {"city": "Cape Town", "temp": 21.5, "conditions": ["sunny", "windy"]}. APIs use it because it is easy for humans to read, small, and every language can read it. In Python, response.json() turns it into a dictionary or list that can be used straight away.
+
+HTTP request methods say what the client wants to do with a resource:
+GET - read/fetch data (get the weather for a city). It should not change anything on the server.
+POST - create something new (create a new user, send a form).
+PUT - replace an existing resource completely with the data sent.
+PATCH - update only some fields of an existing resource.
+DELETE - remove a resource.
+
+Status codes tell us what happened to the request. They are grouped by the first digit:
+2xx = success. 200 OK (the request worked) and 201 Created (something new was created, typically after a POST).
+3xx = redirection (the resource has moved).
+4xx = the client made a mistake. 400 Bad Request (invalid or missing data), 401 Unauthorized (missing or wrong API key or login), 404 Not Found (the endpoint or resource does not exist). Also 403 Forbidden and 429 Too Many Requests (rate limit).
+5xx = the server has a problem. 500 Internal Server Error (something broke on their side, it is not our fault, and we can retry later).
+
+An API key is a secret code that identifies our app, it is sent with every request (usually in a header or as a parameter) so that the provider can allow access and track and limit usage. It must be kept secret: not hard-coded in the source code or pushed to GitHub, rather stored in an environment variable. Request parameters are extra details added to the URL after a ?, for example ?city=Cape Town&units=metric, to filter or customise what is returned.
+
+In Python, using the requests library:
+
+import requests
+try:
+    response = requests.get("https://api.example.com/v1/weather", params={"city": "Cape Town", "units": "metric"}, headers={"Authorization": "Bearer MY_KEY"}, timeout=10)
+    response.raise_for_status()
+    data = response.json()
+    print(data["temp"])
+except requests.exceptions.HTTPError as error:
+    print("The server returned an error:", error)
+except requests.exceptions.RequestException as error:
+    print("The request failed (network problem, timeout):", error)
+
+I always check the status code (raise_for_status() raises an error for 4xx and 5xx), set a timeout so the app does not hang forever, and handle failures by showing a friendly message or retrying a limited number of times.
